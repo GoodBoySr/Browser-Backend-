@@ -33,8 +33,8 @@ def proxy():
         headers = {key: value for key, value in request.headers if key.lower() not in [
             'host', 'connection', 'keep-alive', 'proxy-authenticate',
             'proxy-authorization', 'te', 'trailers', 'transfer-encoding', 'upgrade',
-            'x-forwarded-for', 'x-real-ip', # Proxy itself will add these or similar
-            'cookie' # Removed cookies as they often cause issues with simple proxies unless explicitly handled
+            'x-forwarded-for', 'x-real-ip', 
+            'cookie' # Removed cookies for simplicity, re-add if site breaks
         ]}
 
         # Perform the request to the target URL
@@ -46,7 +46,7 @@ def proxy():
             params=request.args,
             stream=True,
             allow_redirects=True,
-            timeout=30 # Increased timeout for potentially slow sites
+            timeout=30
             # verify=False # Uncomment only if absolutely necessary and you understand the security risks
         )
 
@@ -56,14 +56,13 @@ def proxy():
         # Copy all headers from the target response to our response
         excluded_headers = [
             'content-encoding', 'content-length', 'transfer-encoding', 'connection',
-            'set-cookie' # Handle set-cookie headers carefully, often needs re-writing
+            'set-cookie' 
         ]
         for header, value in resp.headers.items():
             if header.lower() not in excluded_headers:
                 response.headers[header] = value
         
         # Explicitly remove X-Frame-Options and Content-Security-Policy to allow embedding
-        # This is critical for most websites to load in an iframe via a proxy.
         if 'X-Frame-Options' in response.headers:
             del response.headers['X-Frame-Options']
         if 'Content-Security-Policy' in response.headers:
@@ -78,7 +77,12 @@ def proxy():
         print(f"An unexpected error occurred: {e}")
         return f"An unexpected error occurred: {e}", 500
 
+# Railway will set the PORT environment variable
+# We need to explicitly get it here to bind the Flask development server to it
+port = int(os.environ.get('PORT', 5000))
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True) # debug=True is for local development. Railway handles this differently.
-      
+    # This is the key part: Running the Flask app directly with the Railway-provided port
+    app.run(host='0.0.0.0', port=port, debug=False) 
+    # debug=False is important for production, even if it's the dev server
+    
