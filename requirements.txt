@@ -1,4 +1,3 @@
 Flask
 requests
 Flask-Cors
-gunicorn # Add gunicorn for production deployment
